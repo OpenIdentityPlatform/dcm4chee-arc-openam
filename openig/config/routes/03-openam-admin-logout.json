@@ -1,0 +1,30 @@
+{
+    "name": "${matches(request.uri.path, '^/openam/oauth2/realms/dcm4che/protocol/openid-connect/logout')}",
+    "condition": "${matches(request.uri.path, '^/openam/oauth2/realms/dcm4che/protocol/openid-connect/logout')}",
+    "monitor": true,
+    "timer": true,
+    "handler": {
+      "type": "Chain",
+      "config": {
+        "filters": [
+          
+        ],
+        "handler": "EndpointHandler"
+      }
+    },
+    "heap": [
+      {
+        "name": "EndpointHandler",
+        "type": "DispatchHandler",
+        "config": {
+          "bindings": [
+            {
+              "handler": "ClientHandler",
+              "capture": "all",
+              "baseURI": "${system['openam']}/UI/Logout"
+            }
+          ]
+        }
+      }
+   ]
+  }

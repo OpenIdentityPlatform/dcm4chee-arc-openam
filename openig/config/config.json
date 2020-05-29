@@ -1,0 +1,30 @@
+{
+  "heap": [
+
+  ],
+  "handler": {
+    "type": "Chain",
+    "config": {
+      "filters": [
+        {
+          "name": "Access-Control-Allow-Origin",
+          "type": "HeaderFilter",
+          "config": {
+              "messageType": "RESPONSE",
+              "add": {
+                  "Access-Control-Allow-Origin": [ "${request.headers['Origin'][0]}"],
+                  "Access-Control-Allow-Credentials": ["true"],
+                  "Access-Control-Allow-Headers": ["${request.headers['Access-Control-Request-Headers'][0]}"]
+              }
+          }
+     }
+      ],
+      "handler": {
+        "type": "Router",
+        "name": "_router",
+        "capture": "all"
+      }
+    }
+  }
+  
+}

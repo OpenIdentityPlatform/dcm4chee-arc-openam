@@ -1,0 +1,30 @@
+{
+    "name": "${matches(request.uri.path, '^/dcm4chee-arc')}",
+    "condition": "${matches(request.uri.path, '^/dcm4chee-arc')}",
+    "monitor": true,
+    "timer": true,
+    "handler": {
+      "type": "Chain",
+      "config": {
+        "filters": [
+  
+        ],
+        "handler": "EndpointHandler"
+      }
+    },
+    "heap": [
+      {
+        "name": "EndpointHandler",
+        "type": "DispatchHandler",
+        "config": {
+          "bindings": [
+            {
+              "handler": "ClientHandler",
+              "capture": "all",
+              "baseURI": "${matchingGroups(system['arc'],\"((http|https):\/\/(.[^\/]*))\")[1]}"
+            }
+          ]
+        }
+      }
+    ]
+  }

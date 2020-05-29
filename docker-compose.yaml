@@ -1,0 +1,130 @@
+version: "3.7"
+services:
+  openam:
+    build: 
+      context: ./openam-docker
+    volumes:
+      - ./data/openam:/usr/openam/config
+      - ./data/openam-tomcat:/usr/local/tomcat/webapps/openam
+    ports:
+      - "8000:8000"
+      - "8081:8080"
+      - "50389:50389"
+    depends_on:
+      - opendj-openam
+     
+    networks:
+      openam_network:
+        aliases:
+          - openam.local
+          - test.openam.org.ru
+    command: ["/usr/openam/wait-for-it.sh", "--timeout=0", "-s", "opendj-openam:1389", "--", "/usr/local/tomcat/bin/catalina.sh", "run"]
+  
+  opendj-openam:
+    build:
+      context: ./opendj-openam-docker
+    ports:
+      - "1389:1389"
+      - "1636:1636"
+      - "4444:4444"
+    hostname: opendj-openam
+    environment: 
+      - BASE_DN=dc=openam,dc=openidentityplatform,dc=org
+      - ADD_BASE_ENTRY=
+    volumes:
+      - ./data/opendj-openam:/opt/opendj/data
+    networks:
+      openam_network:
+        aliases:
+          - opendj-openam
+  
+  opendj-arc:
+    build:
+      context: ./opendj-arc-docker
+    ports:
+      - "11389:1389"
+      - "11636:1636"
+      - "14444:4444"
+    hostname: opendj-arc
+    environment: 
+      - BASE_DN=dc=dcm4che,dc=org
+      - ADD_BASE_ENTRY=
+    volumes:
+      - ./data/opendj-arc:/opt/opendj/data
+    networks:
+      openam_network:
+        aliases:
+          - opendj-arc
+          
+  openig:
+    image: openidentityplatform/openig
+    volumes:
+      - ./openig/config:/usr/local/openig-config/config:ro
+      - ./openig/scripts:/usr/local/openig-config/scripts:ro
+      - ./data/openig-tomcat:/usr/local/tomcat/webapps/ROOT
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro      
+    environment:
+      CATALINA_OPTS: -Dopenig.base=/usr/local/openig-config -Dopenig.base=/usr/local/openig-config -Dopenam=http://openam.local:8080/openam -Darc=http://arc.local:8080/dcm4chee-arc -agentlib:jdwp=transport=dt_socket,address=8000,server=y,suspend=n
+    ports:
+      - "8080:8080"
+      - "8001:8000"
+    networks:
+      openam_network:
+        aliases:
+          - openig.local
+          - ext.openam.org.ru
+    #command: ["cp", "/usr/local/tomcat/webapps/ROOT.war", "/usr/local/tomcat/webapps/ROOT/ROOT.war"]
+
+  db:
+    image: dcm4che/postgres-dcm4chee:12.1-21
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+    ports:
+      - "5432:5432"
+    env_file: docker-compose.env
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+      - ./data/dcm4chee-arc/db:/var/lib/postgresql/data
+    networks:
+      openam_network:
+        aliases:
+          - db.local
+  arc:
+    image: dcm4che/dcm4chee-arc-psql:5.22.0-secure
+    ports:
+      #- "8080:8080"
+      - "8443:8443"
+      - "9990:9990"
+      - "9993:9993"
+      - "11112:11112"
+      - "2762:2762"
+      - "2575:2575"
+      - "12575:12575"
+      - "8787:8787"
+    env_file: docker-compose.env
+    environment:
+      WILDFLY_CHOWN: /opt/wildfly/standalone /storage
+      WILDFLY_WAIT_FOR: opendj-arc:1389 db:5432
+      JAVA_OPTS: -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:8787 -server -Xms64m -Xmx512m -XX:MetaspaceSize=96M -XX:MaxMetaspaceSize=256m -Djava.net.preferIPv4Stack=true -Djboss.modules.system.pkgs=org.jboss.byteman -Djava.awt.headless=true  --add-exports=java.base/sun.nio.ch=ALL-UNNAMED --add-exports=jdk.unsupported/sun.misc=ALL-UNNAMED --add-exports=jdk.unsupported/sun.reflect=ALL-UNNAMED
+    depends_on:
+      - opendj-arc
+      - openam
+      - db
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+      - ./data/dcm4chee-arc/wildfly:/opt/wildfly/standalone
+      - ./data/dcm4chee-arc/storage:/storage
+    #command: ["standalone.sh", "-b", "0.0.0.0", "-bmanagement", "0.0.0.0", "--debug"]
+    networks:
+      openam_network:
+        aliases:
+          - arc.local
+
+networks:
+  openam_network:
+    driver: bridge

@@ -1,0 +1,43 @@
+{
+    "name": "${matches(request.uri.path, '^/openam')}",
+    "condition": "${matches(request.uri.path, '^/openam')}",
+    "monitor": true,
+    "timer": true,
+    "handler": {
+      "type": "Chain",
+      "config": {
+        "filters": [
+          {    
+            "type": "ConditionalFilter",
+            "config": {
+              "condition": "${matches(request.uri.path, '^/openam/oauth2/realms/root/realms/dcm4che/access_token')}",
+              "delegate": {
+                "type": "ScriptableFilter",
+                "config": {
+                    "type": "application/x-groovy",
+                    "file": "token.groovy",                
+                    "args": {}
+                }
+              }
+            }
+          }
+        ],
+        "handler": "EndpointHandler"
+      }
+    },
+    "heap": [
+      {
+        "name": "EndpointHandler",
+        "type": "DispatchHandler",
+        "config": {
+          "bindings": [
+            {
+              "handler": "ClientHandler",
+              "capture": "all",
+              "baseURI": "${matchingGroups(system['openam'],\"((http|https):\/\/(.[^\/]*))\")[1]}"
+            }
+          ]
+        }
+      }
+    ]
+  }

@@ -1,0 +1,28 @@
+{
+    "name": "${matches(request.uri.path, '^/openam/oauth2/admin/dcm4che/console')}",
+    "condition": "${matches(request.uri.path, '^/openam/oauth2/admin/dcm4che/console')}",
+    "monitor": true,
+    "timer": true,
+    "handler": {
+      "type": "Chain",
+      "config": {
+        "filters": [
+          
+        ],
+        "handler": "ConsoleHadler"
+      }
+    },
+    "heap": [
+      {
+        "name": "ConsoleHadler",
+        "type": "StaticResponseHandler",
+        "config": {
+            "status": 302,
+            "reason": "Found",
+            "headers": {
+                "Location": ["/openam/console"]
+            }
+        }
+    }
+    ]
+  }
